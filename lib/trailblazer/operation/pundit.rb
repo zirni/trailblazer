@@ -23,7 +23,8 @@ class Trailblazer::Operation
 
       private
         def build_policy(options)
-          @policy_class.new(options["current_user"], options["model"])
+          record = options['pundit.record'] || options['model']
+          @policy_class.new(options["current_user"], record)
         end
 
         def result!(success, policy)

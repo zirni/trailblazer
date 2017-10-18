@@ -101,4 +101,43 @@ class PolicyTest < Minitest::Spec
     result["result.policy.default"].success?.must_equal false
     result["result.policy.default"]["message"].must_equal "Breach"
   end
+
+
+  class TeamPolicy
+
+    attr_reader :record
+
+    def initialize(user, record)
+      @user   = user
+      @record = record
+    end
+
+    def index?; true; end
+  end
+
+  class Team; end;
+
+  class Team::Index < Trailblazer::Operation
+    step :set_pundit_record_context!
+    step Policy::Pundit(TeamPolicy, :index?)
+    failure :policy_failed
+    step :set_model!
+
+    def set_pundit_record_context!(options, params:, **)
+      organization = OpenStruct.new(id: params[:organization_id], teams: [])
+      options['pundit.record'] = organization
+    end
+
+    def set_model!(options, **)
+      options['model'] = options['pundit.record'].teams
+    end
+  end
+
+  it 'should initialize pundit policy with pundit.record' do
+    result = Team::Index.({ organization_id: 4711 }, "current_user" => Module)
+
+    result['policy.default'].record.id.must_equal 4711
+    result['result.policy.default'].success?.must_equal true
+  end
+
 end
